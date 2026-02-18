@@ -1,0 +1,236 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum InvoiceSource {
+  CSV
+  STRIPE
+  QBO
+}
+
+enum InvoiceStatus {
+  PENDING
+  DUE_SOON
+  OVERDUE
+  RECOVERED
+}
+
+enum ReminderStage {
+  PRE_DUE
+  OVERDUE_1
+  OVERDUE_2
+  FINAL
+}
+
+enum ReminderSendStatus {
+  QUEUED
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum Tone {
+  FRIENDLY
+  FIRM
+  DIRECT
+}
+
+enum IntegrationProvider {
+  STRIPE
+  QBO
+}
+
+enum IntegrationStatus {
+  DISCONNECTED
+  CONNECTED
+  ERROR
+}
+
+model User {
+  id           String      @id @default(cuid())
+  email        String      @unique
+  passwordHash String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  workspace    Workspace?
+  auditEvents  AuditEvent[]
+}
+
+model Workspace {
+  id                   String                 @id @default(cuid())
+  name                 String
+  slug                 String                 @unique
+  ownerUserId          String                 @unique
+  timezone             String
+  baseCurrency         String
+  onboardingCompletedAt DateTime?
+  createdAt            DateTime               @default(now())
+  ownerUser            User                   @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  subscription         Subscription?
+  automationSettings   AutomationSettings?
+  clients              Client[]
+  invoices             Invoice[]
+  reminderEvents       ReminderEvent[]
+  integrations         IntegrationConnection[]
+  auditEvents          AuditEvent[]
+  templates            ReminderTemplate[]
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  workspaceId          String    @unique
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  stripePriceId        String?
+  status               String
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  workspace            Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+model AutomationSettings {
+  id              String    @id @default(cuid())
+  workspaceId     String    @unique
+  tone            Tone      @default(FRIENDLY)
+  sendWindowStart String    @default("09:00")
+  sendWindowEnd   String    @default("17:00")
+  weekdaysOnly    Boolean   @default(true)
+  preDueDays      Int       @default(3)
+  overdue1Days    Int       @default(1)
+  overdue2Days    Int       @default(4)
+  finalDays       Int       @default(10)
+  signatureName   String
+  replyToEmail    String
+  updatedAt       DateTime  @updatedAt
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+model Client {
+  id         String    @id @default(cuid())
+  workspaceId String
+  name       String
+  email      String
+  createdAt  DateTime  @default(now())
+  workspace  Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invoices   Invoice[]
+
+  @@unique([workspaceId, email])
+}
+
+model Invoice {
+  id              String       @id @default(cuid())
+  workspaceId     String
+  clientId        String
+  source          InvoiceSource
+  externalId      String?
+  invoiceNumber   String
+  amountDueMinor  Int
+  amountPaidMinor Int          @default(0)
+  currency        String
+  dueDate         DateTime
+  issuedDate      DateTime?
+  paymentUrl      String
+  status          InvoiceStatus @default(PENDING)
+  lastReminderAt  DateTime?
+  paidAt          DateTime?
+  recoveredAt     DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  workspace       Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  client          Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  reminders       ReminderEvent[]
+  paymentLinks    PaymentLink[]
+
+  @@index([workspaceId, status, dueDate])
+  @@unique([workspaceId, source, externalId])
+}
+
+model ReminderEvent {
+  id              String            @id @default(cuid())
+  workspaceId     String
+  invoiceId       String
+  stage           ReminderStage
+  scheduledFor    DateTime
+  sentAt          DateTime?
+  status          ReminderSendStatus @default(QUEUED)
+  emailTo         String
+  subject         String
+  bodySnapshot    String
+  resendMessageId String?
+  errorMessage    String?
+  attempts        Int               @default(0)
+  createdAt       DateTime          @default(now())
+  workspace       Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invoice         Invoice           @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  paymentLinks    PaymentLink[]
+
+  @@index([workspaceId, scheduledFor, status])
+  @@unique([invoiceId, stage])
+}
+
+model ReminderTemplate {
+  id              String        @id @default(cuid())
+  workspaceId     String
+  stage           ReminderStage
+  subjectTemplate String
+  bodyTemplate    String
+  updatedAt       DateTime      @updatedAt
+  workspace       Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, stage])
+}
+
+model PaymentLink {
+  id              String        @id @default(cuid())
+  invoiceId       String
+  reminderEventId String?
+  token           String        @unique
+  destinationUrl  String
+  clickCount      Int           @default(0)
+  lastClickedAt   DateTime?
+  createdAt       DateTime      @default(now())
+  invoice         Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  reminderEvent   ReminderEvent? @relation(fields: [reminderEventId], references: [id], onDelete: SetNull)
+  clicks          PaymentLinkClick[]
+}
+
+model PaymentLinkClick {
+  id            String      @id @default(cuid())
+  paymentLinkId String
+  clickedAt     DateTime    @default(now())
+  ipHash        String?
+  userAgent     String?
+  paymentLink   PaymentLink @relation(fields: [paymentLinkId], references: [id], onDelete: Cascade)
+}
+
+model IntegrationConnection {
+  id                    String            @id @default(cuid())
+  workspaceId           String
+  provider              IntegrationProvider
+  status                IntegrationStatus @default(DISCONNECTED)
+  encryptedAccessToken  String?
+  encryptedRefreshToken String?
+  tokenExpiresAt        DateTime?
+  metadataJson          Json?
+  updatedAt             DateTime          @updatedAt
+  workspace             Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, provider])
+}
+
+model AuditEvent {
+  id          String    @id @default(cuid())
+  workspaceId String
+  actorUserId String?
+  eventType   String
+  payloadJson Json?
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  actorUser   User?     @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+}

@@ -1,0 +1,161 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f3f7fc;
+  --foreground: #0b1220;
+  --muted: #4d5b73;
+  --accent: #00a86b;
+  --accent-2: #ff7a18;
+  --surface: rgba(255, 255, 255, 0.9);
+  --surface-strong: #ffffff;
+  --ring: rgba(0, 168, 107, 0.28);
+  --border: rgba(11, 18, 32, 0.09);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-brand);
+  --font-mono: var(--font-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-brand), sans-serif;
+  min-height: 100vh;
+  background-image:
+    radial-gradient(circle at 12% 8%, rgba(0, 168, 107, 0.2) 0%, transparent 32%),
+    radial-gradient(circle at 92% 6%, rgba(255, 122, 24, 0.22) 0%, transparent 36%),
+    radial-gradient(circle at 78% 88%, rgba(49, 132, 253, 0.2) 0%, transparent 34%),
+    linear-gradient(180deg, #eef4fb 0%, #f8fbff 45%, #f1f7ff 100%);
+}
+
+::selection {
+  background: rgba(0, 168, 107, 0.25);
+  color: #042516;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
+}
+
+.card {
+  @apply rounded-2xl p-6;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 12px 30px rgba(11, 18, 32, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(8px);
+}
+
+.app-shell-bg {
+  background-image:
+    radial-gradient(circle at 6% 14%, rgba(0, 168, 107, 0.16), transparent 34%),
+    radial-gradient(circle at 94% 10%, rgba(255, 122, 24, 0.2), transparent 38%),
+    linear-gradient(180deg, #eef4fb 0%, #f7fbff 60%, #f3f9ff 100%);
+}
+
+.hero-panel {
+  @apply relative overflow-hidden rounded-3xl p-8 md:p-12;
+  background:
+    linear-gradient(130deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.78)),
+    linear-gradient(120deg, rgba(0, 168, 107, 0.18), rgba(49, 132, 253, 0.16), rgba(255, 122, 24, 0.18));
+  border: 1px solid rgba(11, 18, 32, 0.12);
+  box-shadow:
+    0 30px 55px rgba(11, 18, 32, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.hero-panel::after {
+  content: "";
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0));
+  top: -70px;
+  right: -60px;
+  pointer-events: none;
+}
+
+.chip {
+  @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold;
+  color: #044a31;
+  background: rgba(0, 168, 107, 0.14);
+  border: 1px solid rgba(0, 168, 107, 0.22);
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200;
+  color: white;
+  background: linear-gradient(135deg, #00a86b, #007b51);
+  box-shadow: 0 10px 24px rgba(0, 123, 81, 0.35);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(0, 123, 81, 0.38);
+}
+
+.btn-accent {
+  @apply inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200;
+  color: #1a1203;
+  background: linear-gradient(135deg, #ffb143, #ff7a18);
+  box-shadow: 0 10px 24px rgba(255, 122, 24, 0.32);
+}
+
+.btn-accent:hover {
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200;
+  border: 1px solid rgba(11, 18, 32, 0.16);
+  background: rgba(255, 255, 255, 0.78);
+  color: #162132;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 1);
+}
+
+.field {
+  @apply mt-1 w-full rounded-xl px-3 py-2 text-sm transition-all duration-200;
+  border: 1px solid rgba(11, 18, 32, 0.18);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.field:focus {
+  outline: none;
+  border-color: rgba(0, 168, 107, 0.5);
+  box-shadow: 0 0 0 4px var(--ring);
+}
+
+.fade-up {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: fade-up 0.55s ease forwards;
+}
+
+.fade-up-delay-1 {
+  animation-delay: 0.1s;
+}
+
+.fade-up-delay-2 {
+  animation-delay: 0.2s;
+}
+
+.fade-up-delay-3 {
+  animation-delay: 0.3s;
+}
+
+@keyframes fade-up {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
