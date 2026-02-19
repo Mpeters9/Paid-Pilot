@@ -3,6 +3,24 @@ import { logger } from "@/server/logger";
 import { JOBS, startBoss, stopBoss } from "@/server/jobs/boss";
 import { requeueFailedReminders, runReminderScan, sendDueReminders } from "@/server/reminders/workflows";
 
+function describeStartupError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return String(error);
+  }
+
+  const aggregate = error as Error & { code?: string; errors?: Array<{ message?: string; code?: string }> };
+  if (Array.isArray(aggregate.errors) && aggregate.errors.length > 0) {
+    const parts = aggregate.errors
+      .map((item) => item?.message ?? item?.code)
+      .filter((value): value is string => Boolean(value));
+    if (parts.length > 0) {
+      return parts.join(" | ");
+    }
+  }
+
+  return error.message || error.name || "Unknown startup error";
+}
+
 async function main() {
   getConfig();
   console.log("[worker] booting...");
@@ -33,7 +51,7 @@ main().catch((error) => {
   logger.error(
     {
       err: error,
-      message: error instanceof Error ? error.message : String(error),
+      message: describeStartupError(error),
       stack: error instanceof Error ? error.stack : undefined,
     },
     "Worker failed to start",
