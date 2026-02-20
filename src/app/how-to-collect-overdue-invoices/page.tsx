@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 export default function HowToCollectOverdueInvoicesPage() {
   return (
     <article className="mx-auto max-w-4xl px-6 py-14">

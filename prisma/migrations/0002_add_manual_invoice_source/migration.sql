@@ -1,0 +1,1 @@
+ALTER TYPE "InvoiceSource" ADD VALUE 'MANUAL';

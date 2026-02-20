@@ -5,6 +5,7 @@ import Link from "next/link";
 const navItems = [
   { href: "/app/dashboard", label: "Dashboard" },
   { href: "/app/invoices", label: "Invoices" },
+  { href: "/app/invoices/new", label: "Add invoice" },
   { href: "/app/invoices/import", label: "Import CSV" },
   { href: "/app/settings", label: "Settings" },
   { href: "/app/integrations", label: "Integrations" },

@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 export default function Home() {
   return (
     <div className="min-h-screen">
@@ -7,12 +5,12 @@ export default function Home() {
         <header className="fade-up flex items-center justify-between">
           <div className="text-2xl font-extrabold tracking-tight text-slate-900">PaidPilot</div>
           <div className="flex gap-3">
-            <Link href="/login" className="btn-secondary px-4 py-2 text-sm">
+            <a href="/login" className="btn-secondary px-4 py-2 text-sm">
               Log in
-            </Link>
-            <Link href="/register" className="btn-primary px-4 py-2 text-sm">
+            </a>
+            <a href="/register" className="btn-primary px-4 py-2 text-sm">
               Start free
-            </Link>
+            </a>
           </div>
         </header>
 
@@ -28,12 +26,12 @@ export default function Home() {
             you focus on delivery.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link href="/register" className="btn-accent px-6 py-3 text-base">
+            <a href="/register" className="btn-accent px-6 py-3 text-base">
               Create account
-            </Link>
-            <Link href="/pricing" className="btn-secondary px-6 py-3 text-base">
+            </a>
+            <a href="/pricing" className="btn-secondary px-6 py-3 text-base">
               View pricing
-            </Link>
+            </a>
           </div>
         </section>
 

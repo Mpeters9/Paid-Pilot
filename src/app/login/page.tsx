@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
+type ApiErrorPayload = {
+  error?: {
+    message?: string;
+  };
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const [nextPath] = useState(() => {
@@ -19,23 +25,49 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  async function tryParseJson(response: Response): Promise<ApiErrorPayload | null> {
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      return null;
+    }
+    try {
+      return (await response.json()) as ApiErrorPayload;
+    } catch {
+      return null;
+    }
+  }
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setError(null);
-    const response = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    const payload = await response.json();
-    if (!response.ok) {
-      setError(payload?.error?.message ?? "Failed to login");
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const payload = await tryParseJson(response);
+
+      if (!response.ok) {
+        const fallback =
+          response.status === 401
+            ? "Invalid credentials"
+            : response.status === 503
+              ? "Database unavailable. Please try again in a minute."
+              : "Failed to login";
+        setError(payload?.error?.message ?? fallback);
+        return;
+      }
+
+      router.push(nextPath);
+      router.refresh();
+    } catch {
+      setError("Could not reach the server. Please try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-    router.push(nextPath);
-    router.refresh();
   }
 
   return (
@@ -53,33 +85,29 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold text-slate-900 md:text-2xl">Log in</h1>
           <p className="text-sm text-slate-600">Resume invoice automation.</p>
           <label className="text-sm font-medium text-slate-800">
-          Email
-          <input
-            className="field"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            type="email"
-            required
-          />
-        </label>
-        <label className="text-sm font-medium text-slate-800">
-          Password
-          <input
-            className="field"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            type="password"
-            required
-          />
-        </label>
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
-        <button
-          type="submit"
-          disabled={loading}
-          className="btn-primary disabled:opacity-70"
-        >
-          {loading ? "Logging in..." : "Log in"}
-        </button>
+            Email
+            <input
+              className="field"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              type="email"
+              required
+            />
+          </label>
+          <label className="text-sm font-medium text-slate-800">
+            Password
+            <input
+              className="field"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              type="password"
+              required
+            />
+          </label>
+          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          <button type="submit" disabled={loading} className="btn-primary disabled:opacity-70">
+            {loading ? "Logging in..." : "Log in"}
+          </button>
         </form>
       </div>
     </div>

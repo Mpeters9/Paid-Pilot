@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 export default function PricingPage() {
   return (
     <div className="mx-auto min-h-screen max-w-6xl px-6 py-14">
@@ -18,9 +16,9 @@ export default function PricingPage() {
             <li>CSV import + Stripe sync</li>
             <li>Automated reminder sequences</li>
           </ul>
-          <Link href="/register" className="btn-primary mt-6">
+          <a href="/register" className="btn-primary mt-6">
             Choose Starter
-          </Link>
+          </a>
         </div>
         <div className="card fade-up fade-up-delay-2">
           <p className="chip">Small agencies</p>
@@ -31,9 +29,9 @@ export default function PricingPage() {
             <li>Priority support</li>
             <li>Advanced reporting</li>
           </ul>
-          <Link href="/register" className="btn-accent mt-6">
+          <a href="/register" className="btn-accent mt-6">
             Choose Growth
-          </Link>
+          </a>
         </div>
       </div>
     </div>

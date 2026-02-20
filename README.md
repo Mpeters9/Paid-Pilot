@@ -15,6 +15,8 @@ Set-and-forget invoice recovery automation for freelancers and small agencies.
 
 ## Development
 
+Node runtime baseline: `22.16.x` (see `.nvmrc` / `.node-version`).
+
 1. Install dependencies:
 
 ```bash
@@ -32,6 +34,12 @@ docker compose up -d postgres
 ```bash
 cp .env.example .env
 ```
+
+Environment quick-start:
+
+- `EMAIL_FROM=PaidPilot <onboarding@resend.dev>` for Resend test mode.
+- `EMAIL_FROM=PaidPilot <billing@verified-domain.com>` for production mode after verifying your sending domain in Resend.
+- Local Postgres can use localhost values from `.env.example`.
 
 4. Apply migrations:
 
@@ -73,6 +81,21 @@ pnpm test:e2e
 pnpm build
 pnpm start
 ```
+
+## Deployment (Render + Neon on free tiers)
+
+Set these environment variables in your Render web service:
+
+- `NODE_VERSION` = `22.16.0`
+- `DATABASE_URL` = Neon pooled URL (host contains `-pooler`).
+- `DIRECT_URL` = Neon direct URL (host without `-pooler`), used by Prisma migrations.
+- `APP_URL` = deployed app URL (for example `https://paid-pilot.onrender.com`).
+- `EMAIL_FROM` = valid sender format (`Name <email@domain.com>`).
+- `CRON_SECRET` = required for the cron reminder endpoint.
+
+Health check path on Render:
+
+- `/api/health`
 
 ## Demo Account (after seeding)
 
@@ -135,5 +158,28 @@ Set `CRON_SECRET` in your deployment environment, then schedule a cron trigger e
 This repository includes `.github/workflows/reminder-cron.yml`, which calls the endpoint on a schedule.
 You must define these GitHub repository secrets:
 
-- `APP_URL` (for example `https://your-app.example.com`)
+- `APP_URL` (for example `https://paid-pilot.onrender.com`)
 - `CRON_SECRET` (must match your deployment env var)
+
+## Common Failures
+
+- `P1001 Can't reach database server at localhost:5432`
+  - Cause: `DATABASE_URL` still points to localhost in Render.
+  - Fix: set `DATABASE_URL` to Neon pooled URL.
+
+- `P1002` timeout during `prisma migrate deploy`
+  - Cause: migration running through pooled connection.
+  - Fix: set `DIRECT_URL` to Neon direct URL and keep `directUrl = env("DIRECT_URL")` in `prisma/schema.prisma`.
+
+- `Invalid environment configuration: EMAIL_FROM`
+  - Cause: invalid sender format or URL used as email.
+  - Fix: use `Name <email@domain.com>` or plain `email@domain.com`.
+
+## Post-Deploy Smoke Test Checklist
+
+1. Open `/api/health` and confirm database check is `ok`.
+2. Register/login.
+3. Add invoice manually at `/app/invoices/new`.
+4. Trigger `Send reminder now` from invoices table.
+5. Confirm outbound message in Resend logs.
+6. Confirm no Prisma connectivity errors in Render logs.

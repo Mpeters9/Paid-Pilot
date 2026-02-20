@@ -15,6 +15,17 @@ test("import invoice -> send reminders -> mark recovered", async ({ page }) => {
   await page.getByRole("button", { name: "Complete onboarding" }).click();
   await page.waitForURL("**/app/dashboard");
 
+  await page.goto("/app/invoices/new");
+  await page.getByLabel("Client name").fill("Manual Client");
+  await page.getByLabel("Client email").fill("manual-client@example.test");
+  await page.getByLabel("Invoice number").fill("INV-E2E-MANUAL-1");
+  await page.getByLabel(/Amount due/).fill("850");
+  await page.getByLabel("Due date").fill("2026-12-15");
+  await page.getByLabel("Payment URL").fill("https://example.com/pay/INV-E2E-MANUAL-1");
+  await page.getByRole("button", { name: "Create invoice" }).click();
+  await page.waitForURL("**/app/invoices");
+  await expect(page.getByText("INV-E2E-MANUAL-1")).toBeVisible();
+
   await page.goto("/app/invoices/import");
   const csv = [
     "clientName,clientEmail,invoiceNumber,amountDue,currency,dueDate,paymentUrl",

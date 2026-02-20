@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
-import { listInvoices } from "@/server/invoices";
-import { ok, withErrorHandling } from "@/server/http";
+import { createManualInvoice, listInvoices } from "@/server/invoices";
+import { ok, parseJsonBody, withErrorHandling } from "@/server/http";
 import { requireSession } from "@/server/route-auth";
-import { paginationSchema } from "@/server/validation";
+import { createInvoiceSchema, paginationSchema } from "@/server/validation";
 
 export async function GET(request: NextRequest) {
   return withErrorHandling(async () => {
@@ -21,3 +21,23 @@ export async function GET(request: NextRequest) {
   });
 }
 
+export async function POST(request: NextRequest) {
+  return withErrorHandling(async () => {
+    const session = requireSession(request);
+    const payload = parseJsonBody(await request.json(), createInvoiceSchema);
+
+    const invoice = await createManualInvoice({
+      workspaceId: session.workspaceId,
+      clientName: payload.clientName,
+      clientEmail: payload.clientEmail,
+      invoiceNumber: payload.invoiceNumber,
+      amountDue: payload.amountDue,
+      currency: payload.currency,
+      dueDate: payload.dueDate,
+      issuedDate: payload.issuedDate,
+      paymentUrl: payload.paymentUrl,
+    });
+
+    return ok(invoice, 201);
+  });
+}

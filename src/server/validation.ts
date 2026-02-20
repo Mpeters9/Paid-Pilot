@@ -2,6 +2,7 @@ import { Tone } from "@prisma/client";
 import { z } from "zod";
 
 const timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
+const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;
 
 export const registerSchema = z.object({
   email: z.string().email(),
@@ -43,3 +44,13 @@ export const paginationSchema = z.object({
   status: z.enum(["PENDING", "DUE_SOON", "OVERDUE", "RECOVERED"]).optional(),
 });
 
+export const createInvoiceSchema = z.object({
+  clientName: z.string().min(1),
+  clientEmail: z.string().email(),
+  invoiceNumber: z.string().min(1),
+  amountDue: z.coerce.number().positive(),
+  currency: z.string().length(3).transform((value) => value.toUpperCase()),
+  dueDate: z.string().regex(isoDatePattern, "dueDate must be YYYY-MM-DD"),
+  issuedDate: z.string().regex(isoDatePattern, "issuedDate must be YYYY-MM-DD").optional(),
+  paymentUrl: z.string().url(),
+});

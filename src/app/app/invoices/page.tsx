@@ -26,9 +26,14 @@ export default async function InvoicesPage() {
           <h1 className="text-3xl font-extrabold text-slate-900">Invoices</h1>
           <p className="text-sm text-slate-600">Pipeline: pending, due soon, overdue, recovered.</p>
         </div>
-        <Link href="/app/invoices/import" className="btn-accent">
-          Import CSV
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/app/invoices/new" className="btn-primary">
+            Add invoice
+          </Link>
+          <Link href="/app/invoices/import" className="btn-accent">
+            Import CSV
+          </Link>
+        </div>
       </div>
 
       <section className="card p-0">
@@ -67,7 +72,7 @@ export default async function InvoicesPage() {
               {invoices.length === 0 ? (
                 <tr>
                   <td className="px-4 py-6 text-slate-500" colSpan={7}>
-                    No invoices yet. Import CSV to get started.
+                    No invoices yet. Add one manually or import CSV to get started.
                   </td>
                 </tr>
               ) : null}

@@ -3,6 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+type ApiErrorPayload = {
+  error?: {
+    message?: string;
+  };
+};
+
 export default function RegisterPage() {
   const router = useRouter();
   const [form, setForm] = useState({
@@ -15,23 +21,44 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  async function tryParseJson(response: Response): Promise<ApiErrorPayload | null> {
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      return null;
+    }
+    try {
+      return (await response.json()) as ApiErrorPayload;
+    } catch {
+      return null;
+    }
+  }
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setError(null);
-    const response = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    const payload = await response.json();
-    if (!response.ok) {
-      setError(payload?.error?.message ?? "Failed to register");
+
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const payload = await tryParseJson(response);
+
+      if (!response.ok) {
+        const fallback = response.status === 503 ? "Database unavailable. Please try again in a minute." : "Failed to register";
+        setError(payload?.error?.message ?? fallback);
+        return;
+      }
+
+      router.push("/app/onboarding");
+      router.refresh();
+    } catch {
+      setError("Could not reach the server. Please try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-    router.push("/app/onboarding");
-    router.refresh();
   }
 
   return (

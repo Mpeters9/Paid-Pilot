@@ -19,6 +19,89 @@ const csvInvoiceSchema = z.object({
   externalId: z.string().optional(),
 });
 
+export async function createManualInvoice(args: {
+  workspaceId: string;
+  clientName: string;
+  clientEmail: string;
+  invoiceNumber: string;
+  amountDue: number;
+  currency: string;
+  dueDate: string;
+  issuedDate?: string;
+  paymentUrl: string;
+}) {
+  const workspace = await prisma.workspace.findUnique({
+    where: { id: args.workspaceId },
+  });
+  if (!workspace) {
+    throw new AppError("NOT_FOUND", "Workspace not found", 404);
+  }
+
+  const normalizedCurrency = args.currency.toUpperCase();
+  if (normalizedCurrency !== workspace.baseCurrency.toUpperCase()) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      `Currency ${normalizedCurrency} does not match workspace base currency ${workspace.baseCurrency}`,
+      400,
+    );
+  }
+
+  const dueDate = new Date(args.dueDate);
+  if (Number.isNaN(dueDate.getTime())) {
+    throw new AppError("VALIDATION_ERROR", "Invalid due date", 400);
+  }
+
+  const issuedDate = args.issuedDate ? new Date(args.issuedDate) : null;
+  if (issuedDate && Number.isNaN(issuedDate.getTime())) {
+    throw new AppError("VALIDATION_ERROR", "Invalid issued date", 400);
+  }
+
+  const amountDueMinor = Math.round(args.amountDue * 100);
+  const status = computeInvoiceStatus(
+    {
+      dueDate,
+      paidAt: null,
+      amountDueMinor,
+      amountPaidMinor: 0,
+    },
+    new Date(),
+  );
+
+  const client = await prisma.client.upsert({
+    where: {
+      workspaceId_email: {
+        workspaceId: args.workspaceId,
+        email: args.clientEmail.trim().toLowerCase(),
+      },
+    },
+    update: {
+      name: args.clientName.trim(),
+    },
+    create: {
+      workspaceId: args.workspaceId,
+      name: args.clientName.trim(),
+      email: args.clientEmail.trim().toLowerCase(),
+    },
+  });
+
+  return prisma.invoice.create({
+    data: {
+      workspaceId: args.workspaceId,
+      clientId: client.id,
+      source: InvoiceSource.MANUAL,
+      externalId: null,
+      invoiceNumber: args.invoiceNumber.trim(),
+      amountDueMinor,
+      currency: normalizedCurrency,
+      dueDate,
+      issuedDate,
+      paymentUrl: args.paymentUrl.trim(),
+      status,
+    },
+    include: { client: true },
+  });
+}
+
 export async function importInvoicesFromCsv(workspaceId: string, csvText: string): Promise<{
   importedCount: number;
   skippedCount: number;
@@ -248,4 +331,3 @@ export async function sendReminderNow(workspaceId: string, invoiceId: string) {
     scheduledFor: schedule,
   });
 }
-

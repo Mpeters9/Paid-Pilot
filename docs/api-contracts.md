@@ -39,6 +39,22 @@ All JSON endpoints return one of:
 
 ## Invoices
 
+- `POST /api/invoices`
+  - Body:
+  ```json
+  {
+    "clientName": "Client One",
+    "clientEmail": "client@example.com",
+    "invoiceNumber": "INV-1001",
+    "amountDue": 1200.5,
+    "currency": "USD",
+    "dueDate": "2026-03-15",
+    "issuedDate": "2026-03-01",
+    "paymentUrl": "https://example.com/pay/INV-1001"
+  }
+  ```
+  - Success: `201 { "data": { ...invoiceWithClient } }`
+  - Validation/business error: `400 { "error": { "code": "VALIDATION_ERROR", "message": "...", "details": ... } }`
 - `POST /api/invoices/import-csv` (multipart, `file`)
 - `GET /api/invoices?status=&page=&pageSize=`
 - `GET /api/invoices/:id`

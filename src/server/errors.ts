@@ -13,6 +13,18 @@ export class AppError extends Error {
 }
 
 export function isAppError(error: unknown): error is AppError {
-  return error instanceof AppError;
-}
+  if (error instanceof AppError) {
+    return true;
+  }
 
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const candidate = error as Partial<AppError> & { message?: unknown };
+  return (
+    typeof candidate.code === "string" &&
+    typeof candidate.status === "number" &&
+    typeof candidate.message === "string"
+  );
+}

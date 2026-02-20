@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-html-link-for-pages -- keep plain anchor here to avoid sporadic prerender/link crashes in /_not-found */
 export default function NotFoundPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col items-center justify-center gap-4 px-6 text-center">
