@@ -29,6 +29,8 @@ const envSchema = z.object({
   STRIPE_WEBHOOK_SECRET_BILLING: z.string().optional(),
   STRIPE_WEBHOOK_SECRET_INVOICES: z.string().optional(),
   STRIPE_PRICE_STARTER_MONTHLY: z.string().optional(),
+  STRIPE_PRICE_GROWTH_MONTHLY: z.string().optional(),
+  STRIPE_PRICE_SCALE_MONTHLY: z.string().optional(),
   ENCRYPTION_KEY: z.string().min(16).default("dev-encryption-key-change"),
   CRON_SECRET: z.string().min(16).optional(),
   PG_BOSS_SCHEMA: z.string().default("pgboss"),
