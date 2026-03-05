@@ -6,8 +6,7 @@ import { requireSession } from "@/server/route-auth";
 export async function POST(request: NextRequest) {
   return withErrorHandling(async () => {
     const session = requireSession(request);
-    const result = await createPortalSession(session.workspaceId);
+    const result = await createPortalSession(session.workspaceId, request.nextUrl.origin);
     return ok(result);
   });
 }
-

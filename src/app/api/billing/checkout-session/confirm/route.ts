@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
-import { createCheckoutSession } from "@/server/billing";
+import { confirmCheckoutSession } from "@/server/billing";
 import { ok, parseJsonBody, withErrorHandling } from "@/server/http";
 import { requireSession } from "@/server/route-auth";
-import { billingCheckoutSchema } from "@/server/validation";
+import { billingCheckoutConfirmSchema } from "@/server/validation";
 
 export async function POST(request: NextRequest) {
   return withErrorHandling(async () => {
@@ -14,8 +14,8 @@ export async function POST(request: NextRequest) {
       payload = {};
     }
 
-    const body = parseJsonBody(payload, billingCheckoutSchema);
-    const result = await createCheckoutSession(session.workspaceId, body.plan, request.nextUrl.origin);
+    const body = parseJsonBody(payload, billingCheckoutConfirmSchema);
+    const result = await confirmCheckoutSession(session.workspaceId, body.sessionId);
     return ok(result);
   });
 }

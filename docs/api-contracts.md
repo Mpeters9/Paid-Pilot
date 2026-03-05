@@ -74,6 +74,13 @@ All JSON endpoints return one of:
 ## Billing
 
 - `POST /api/billing/checkout-session`
+  - Body: `{ "plan"?: "starter" | "growth" | "scale" }`
+  - Defaults to `starter` if omitted.
+- `POST /api/billing/checkout-session/confirm`
+  - Body: `{ "sessionId": "cs_..." }`
+  - Used after Stripe success redirect to sync subscription status immediately.
+- `GET /api/billing/subscription`
+  - Optional query: `?sync=1` to attempt immediate Stripe-to-DB reconciliation before returning status.
 - `POST /api/billing/portal-session`
 - `POST /api/stripe/webhooks`
 

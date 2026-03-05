@@ -15,6 +15,10 @@ const mockMarkInvoicePaid = vi.fn();
 const mockSendReminderNow = vi.fn();
 const mockGetDashboardMetrics = vi.fn();
 const mockUpdateAutomationSettings = vi.fn();
+const mockCreateCheckoutSession = vi.fn();
+const mockConfirmCheckoutSession = vi.fn();
+const mockCreatePortalSession = vi.fn();
+const mockGetWorkspaceBillingStatus = vi.fn();
 const mockHandleStripeWebhook = vi.fn();
 const mockRunReminderScan = vi.fn();
 const mockSendDueReminders = vi.fn();
@@ -57,6 +61,10 @@ vi.mock("@/server/stripe", () => ({
 }));
 
 vi.mock("@/server/billing", () => ({
+  createCheckoutSession: mockCreateCheckoutSession,
+  confirmCheckoutSession: mockConfirmCheckoutSession,
+  createPortalSession: mockCreatePortalSession,
+  getWorkspaceBillingStatus: mockGetWorkspaceBillingStatus,
   handleStripeSubscriptionWebhook: mockHandleStripeWebhook,
 }));
 
@@ -266,6 +274,153 @@ describe("core API route integration", () => {
     expect(response.status).toBe(200);
     expect(payload.data.received).toBe(true);
     expect(mockHandleStripeWebhook).toHaveBeenCalled();
+  });
+
+  it("creates checkout session for selected growth plan", async () => {
+    mockCreateCheckoutSession.mockResolvedValue({ url: "https://checkout.test/growth" });
+    const { POST } = await import("@/app/api/billing/checkout-session/route");
+    const request = new NextRequest("http://localhost/api/billing/checkout-session", {
+      method: "POST",
+      body: JSON.stringify({ plan: "growth" }),
+      headers: { "content-type": "application/json" },
+    });
+
+    const response = await POST(request);
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.data.url).toBe("https://checkout.test/growth");
+    expect(mockCreateCheckoutSession).toHaveBeenCalledWith("ws_1", "growth", "http://localhost");
+  });
+
+  it("defaults checkout session plan to starter when body is empty", async () => {
+    mockCreateCheckoutSession.mockResolvedValue({ url: "https://checkout.test/starter" });
+    const { POST } = await import("@/app/api/billing/checkout-session/route");
+    const request = new NextRequest("http://localhost/api/billing/checkout-session", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+    });
+
+    const response = await POST(request);
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.data.url).toBe("https://checkout.test/starter");
+    expect(mockCreateCheckoutSession).toHaveBeenCalledWith("ws_1", "starter", "http://localhost");
+  });
+
+  it("confirms checkout session and syncs subscription", async () => {
+    mockConfirmCheckoutSession.mockResolvedValue({
+      status: "active",
+      stripePriceId: "price_growth",
+      stripeSubscriptionId: "sub_123",
+      stripeCustomerId: "cus_123",
+    });
+    const { POST } = await import("@/app/api/billing/checkout-session/confirm/route");
+    const request = new NextRequest("http://localhost/api/billing/checkout-session/confirm", {
+      method: "POST",
+      body: JSON.stringify({ sessionId: "cs_test_123" }),
+      headers: { "content-type": "application/json" },
+    });
+
+    const response = await POST(request);
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.data.status).toBe("active");
+    expect(mockConfirmCheckoutSession).toHaveBeenCalledWith("ws_1", "cs_test_123");
+  });
+
+  it("returns validation error for missing confirm checkout session id", async () => {
+    const { POST } = await import("@/app/api/billing/checkout-session/confirm/route");
+    const request = new NextRequest("http://localhost/api/billing/checkout-session/confirm", {
+      method: "POST",
+      body: JSON.stringify({}),
+      headers: { "content-type": "application/json" },
+    });
+
+    const response = await POST(request);
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.error.code).toBe("VALIDATION_ERROR");
+    expect(mockConfirmCheckoutSession).not.toHaveBeenCalled();
+  });
+
+  it("returns validation error for unsupported checkout plan", async () => {
+    const { POST } = await import("@/app/api/billing/checkout-session/route");
+    const request = new NextRequest("http://localhost/api/billing/checkout-session", {
+      method: "POST",
+      body: JSON.stringify({ plan: "enterprise" }),
+      headers: { "content-type": "application/json" },
+    });
+
+    const response = await POST(request);
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.error.code).toBe("VALIDATION_ERROR");
+    expect(mockCreateCheckoutSession).not.toHaveBeenCalled();
+  });
+
+  it("keeps billing portal session route behavior unchanged", async () => {
+    mockCreatePortalSession.mockResolvedValue({ url: "https://portal.test/session" });
+    const { POST } = await import("@/app/api/billing/portal-session/route");
+    const request = new NextRequest("http://localhost/api/billing/portal-session", {
+      method: "POST",
+    });
+
+    const response = await POST(request);
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.data.url).toBe("https://portal.test/session");
+    expect(mockCreatePortalSession).toHaveBeenCalledWith("ws_1", "http://localhost");
+  });
+
+  it("returns current billing subscription status", async () => {
+    mockGetWorkspaceBillingStatus.mockResolvedValue({
+      status: "active",
+      plan: "growth",
+      stripePriceId: "price_growth",
+      currentPeriodEnd: "2026-04-01T00:00:00.000Z",
+      hasCustomer: true,
+      hasSubscription: true,
+    });
+    const { GET } = await import("@/app/api/billing/subscription/route");
+    const request = new NextRequest("http://localhost/api/billing/subscription", {
+      method: "GET",
+    });
+
+    const response = await GET(request);
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.data.status).toBe("active");
+    expect(payload.data.plan).toBe("growth");
+    expect(mockGetWorkspaceBillingStatus).toHaveBeenCalledWith("ws_1", { syncFromStripe: false });
+  });
+
+  it("can request Stripe-backed billing subscription sync", async () => {
+    mockGetWorkspaceBillingStatus.mockResolvedValue({
+      status: "active",
+      plan: "starter",
+      stripePriceId: "price_starter",
+      currentPeriodEnd: "2026-04-01T00:00:00.000Z",
+      hasCustomer: true,
+      hasSubscription: true,
+    });
+    const { GET } = await import("@/app/api/billing/subscription/route");
+    const request = new NextRequest("http://localhost/api/billing/subscription?sync=1", {
+      method: "GET",
+    });
+
+    const response = await GET(request);
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.data.status).toBe("active");
+    expect(mockGetWorkspaceBillingStatus).toHaveBeenCalledWith("ws_1", { syncFromStripe: true });
   });
 
   it("queues manual reminder through /api/invoices/:id/send-reminder-now", async () => {

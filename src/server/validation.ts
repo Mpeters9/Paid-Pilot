@@ -17,6 +17,14 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+export const billingCheckoutSchema = z.object({
+  plan: z.enum(["starter", "growth", "scale"]).default("starter"),
+});
+
+export const billingCheckoutConfirmSchema = z.object({
+  sessionId: z.string().min(1),
+});
+
 export const automationSettingsSchema = z.object({
   tone: z.nativeEnum(Tone),
   timezone: z.string().min(2),
