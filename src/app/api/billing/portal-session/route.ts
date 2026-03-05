@@ -1,12 +1,13 @@
 import { NextRequest } from "next/server";
 import { createPortalSession } from "@/server/billing";
 import { ok, withErrorHandling } from "@/server/http";
+import { getRequestOrigin } from "@/server/request-origin";
 import { requireSession } from "@/server/route-auth";
 
 export async function POST(request: NextRequest) {
   return withErrorHandling(async () => {
     const session = requireSession(request);
-    const result = await createPortalSession(session.workspaceId, request.nextUrl.origin);
+    const result = await createPortalSession(session.workspaceId, getRequestOrigin(request));
     return ok(result);
   });
 }
