@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import Stripe from "stripe";
 import { handleStripeSubscriptionWebhook } from "@/server/billing";
 import { getConfig } from "@/server/config";
 import { AppError } from "@/server/errors";
@@ -22,7 +23,16 @@ export async function POST(request: NextRequest) {
 
     const payload = await request.text();
     const stripe = getStripeClient();
-    const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+    let event: Stripe.Event;
+    try {
+      event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+    } catch {
+      throw new AppError(
+        "INVALID_SIGNATURE",
+        "Stripe webhook signature verification failed. Check STRIPE_WEBHOOK_SECRET_BILLING.",
+        400,
+      );
+    }
     await handleStripeSubscriptionWebhook(event);
     return ok({ received: true });
   });

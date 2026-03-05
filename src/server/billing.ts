@@ -343,19 +343,21 @@ export async function handleStripeSubscriptionWebhook(event: Stripe.Event) {
 
   if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
     const subscription = event.data.object as Stripe.Subscription;
+    if (!subscription?.id) return;
     const existing = await prisma.subscription.findFirst({
       where: { stripeSubscriptionId: subscription.id },
     });
     if (!existing) return;
 
+    const stripePriceId = readPriceIdFromSubscription(subscription) ?? existing.stripePriceId;
+    const currentPeriodEnd = readCurrentPeriodEndFromSubscription(subscription) ?? existing.currentPeriodEnd;
+
     await prisma.subscription.update({
       where: { id: existing.id },
       data: {
-        stripePriceId: subscription.items.data[0]?.price?.id ?? existing.stripePriceId,
+        stripePriceId,
         status: subscription.status ?? existing.status,
-        currentPeriodEnd: subscription.items.data[0]?.current_period_end
-          ? new Date(subscription.items.data[0].current_period_end * 1000)
-          : null,
+        currentPeriodEnd,
       },
     });
   }
